@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <Button
+        android:id="@+id/buttonUi"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:backgroundTint="#ED1818"
+        android:text="@string/show_bluetooth_devices"
+        android:textSize="16sp" />
+
+    <ListView
+        android:id="@+id/listViewUi"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="20dp" />
+
+</LinearLayout>
+
+
+main activity.java
+
+
+package com.example.shashipr8;
+
+
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Vibrator;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import androidx.activity.EdgeToEdge;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import java.util.ArrayList;
+
+public class MainActivity extends AppCompatActivity {
+
+    Button btn;
+    ListView listView;
+
+    ArrayAdapter<String> adapter;
+    ArrayList<String> devices = new ArrayList<>();
+
+    BluetoothAdapter bluetoothAdapter;
+    Vibrator vibrator;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main);
+
+        btn = findViewById(R.id.buttonUi);
+        listView = findViewById(R.id.listViewUi);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_list_item_1,
+                devices
+        );
+        listView.setAdapter(adapter);
+        btn.setOnClickListener(v -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                showDevices();
+            }
+        });
+        listView.setOnItemClickListener((parent, view, pos, id) -> {
+            vibrator.vibrate(300);
+            Toast.makeText(this, "Vibrated", Toast.LENGTH_LONG).show();
+        });
+    }
+    @RequiresApi(api = Build.VERSION_CODES.S)
+    private void showDevices() {
+        // Check Bluetooth
+        if (bluetoothAdapter == null) {
+            Toast.makeText(this, "Bluetooth not supported",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        // Check permission
+        if (checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{Manifest.permission.BLUETOOTH_CONNECT},
+                    100
+            );
+            return;
+        }
+        // Check ON/OFF
+        if (!bluetoothAdapter.isEnabled()) {
+            bluetoothAdapter.enable();
+            Toast.makeText(this, "Turn on Bluetooth", Toast.LENGTH_SHORT).show();
+        }
+        // Display paired devices
+        devices.clear();
+        for (BluetoothDevice device : bluetoothAdapter.getBondedDevices()) {
+            devices.add(device.getName() + "\n" + device.getAddress());
+        }
+        adapter.notifyDataSetChanged();
+    }
+}
+
+manifest java file
+
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Shashipr8">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
